@@ -1,4 +1,4 @@
-1.【common】[局部性原理——各类优化的基石](https://cloud.tencent.com/developer/article/1777697)
+1.【系统设计】[局部性原理——各类优化的基石](https://cloud.tencent.com/developer/article/1777697)
 
 处理器在访问某些数据时短时间内存在重复访问，某些数据或者位置访问的概率极大，大多数时间只访问*局部*的数据。基于局部性原理，计算机处理器在设计时做了各种优化。
 
@@ -43,3 +43,28 @@
 | 写入时机 | 事务prepare和commit之间不断写入                              | prepare->一次写binlog cache->commit->一次写binlog文件 |
 |          |                                                              |                                                       |
 
+7.【Spring Boot】[jar包和加载机制](https://juejin.cn/post/7353582927680208933)
+
+- 通过maven插件把普通jar  repackage为fat-jar，包含了所有依赖和静态资源，可以直接通过java命令运行。
+
+- Spring Boot的启动类加载器通过MANIFEST.MF文件中的依赖路径，加载所有依赖并执行主类
+- Spring Boot内嵌tomcat，tomcat最终将jar文件解压到操作系统的临时目录，作为web根目录运行的。开箱即用
+
+8.【Java并发】[锁](https://tech.meituan.com/2018/11/15/java-lock.html)
+
+9.【Java并发】[AQS](https://tech.meituan.com/2019/12/05/aqs-theory-and-apply.html)
+
+10.【Java并发】[volatile](https://juejin.cn/post/7052325968676913189)
+
+- 保证可见性
+- 禁止指令重排
+
+11.【MyBatis】[MyBatis缓存](https://tech.meituan.com/2018/01/19/mybatis-cache.html)
+
+- MyBatis一级缓存的生命周期和SqlSession一致。
+
+- MyBatis一级缓存内部设计简单，只是一个没有容量限定的HashMap，在缓存的功能性上有所欠缺。
+
+- MyBatis的一级缓存最大范围是SqlSession内部，有多个SqlSession或者分布式的环境下，数据库写操作会引起脏数据，建议设定缓存级别为Statement。
+
+12.【系统设计】[分布式事务解决方案](https://cloud.tencent.com/developer/article/1806989)
