@@ -52,6 +52,11 @@
 
 8.【Java并发】[锁](https://tech.meituan.com/2018/11/15/java-lock.html)
 
+- 乐观锁和悲观锁
+  - 乐观锁：认为自己在使用数据时不会有别的线程修改数据，所以不会添加锁，只是在更新数据的时候去判断之前有没有别的线程更新了这个数据。如果这个数据没有被更新，当前线程将自己修改的数据成功写入。如果数据已经被其他线程更新，则根据不同的实现方式执行不同的操作（例如报错或者自动重试）。Java中是通过使用无锁编程来实现，最常采用的是CAS算法，Java原子类中的递增操作就通过CAS自旋实现的。
+  - 悲观锁：认为自己在使用数据的时候一定有别的线程来修改数据，因此在获取数据的时候会先加锁，确保数据不会被别的线程修改。Java中，synchronized关键字和Lock的实现类都是悲观锁。
+- 
+
 9.【Java并发】[AQS](https://tech.meituan.com/2019/12/05/aqs-theory-and-apply.html)
 
 10.【Java并发】[volatile](https://juejin.cn/post/7052325968676913189)
@@ -68,3 +73,26 @@
 - MyBatis的一级缓存最大范围是SqlSession内部，有多个SqlSession或者分布式的环境下，数据库写操作会引起脏数据，建议设定缓存级别为Statement。
 
 12.【系统设计】[分布式事务解决方案](https://cloud.tencent.com/developer/article/1806989)
+
+13.【Java并发】[Happens-before原则](https://juejin.cn/post/6960128601249284110)和JMM
+
+说到Happens-before原则，就要先理解as-if-serial语义，即单线程的情况下指令重排序不能影响程序执行的结果。
+
+Happens-before原则
+
+- 如果一个操作 Happens-before 另一个操作，那么第一个操作的执行结果将对第二个操作可见，而且第一个操作的执行顺序排在第二个操作之前。
+
+- 两个操作之间存在 Happens-before 关系，并不意味着 Java 平台的具体实现必须要按照 Happens-before 关系指定的顺序来执行。如果重排序之后的执行结果，与按 Happens-before 关系来执行的结果一致，那么这种重排序并不非法（也就是说，JMM 允许这种重排序）
+
+具体规则
+
+- 前面的代码执行Happens-before后面的代码执行（线程内代码按序执行）
+- 加锁Happens-before解锁
+- A Happens-before B && B Happens-before C 则 A Happens-before C
+- Thread.start() Happens-before 线程的任意动作
+- 构造函数  Happens-before 析构函数
+
+14.【Java并发】Java线程状态转换
+
+![](https://cdn.tobebetterjavaer.com/stutymore/thread-state-and-method-20230829143200.png)
+
