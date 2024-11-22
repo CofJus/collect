@@ -245,22 +245,23 @@ AQS 是一个用于构建锁和同步器的基础**框架**。它提供了一种
 
   **头节点一定代表当前持有锁的线程。**
 
-- **线程等待状态waitStatus：**CLH队列中节点（等待的线程）的等待状态。可能的取值有五种。
-  - **初始值（0）：**节点初始入队时的默认值，无意义
-  - **已取消 CANCELLED（1）：**线程已超时/中断，即不再等待同步状态
-  - **后继待唤醒 SIGNAL（-1）：**当前节点的线程退出同步状态时，唤醒下一个节点。新节点入队时，将前一个节点置为SIGNAL。
-  - **条件等待 CONDITION（-2）：**结合Condition说明。
-  - **传播唤醒 PROPAGATE（-3）：**结合Semaphore说明。
+- **线程等待状态waitStatus**：CLH队列中节点（等待的线程）的等待状态。可能的取值有五种。
+  
+  - **初始值（0）**：节点初始入队时的默认值，无意义
+  - **已取消 CANCELLED（1）**：线程已超时/中断，即不再等待同步状态
+  - **后继待唤醒 SIGNAL（-1）**：当前节点的线程退出同步状态时，唤醒下一个节点。新节点入队时，将前一个节点置为SIGNAL。
+  - **条件等待 CONDITION（-2）**：结合Condition说明。
+  - **传播唤醒 PROPAGATE（-3）**：结合Semaphore说明。
 
 
 ### 6.2 AQS模板方法
 
 AQS提供了几个非抽象的模板方法，子类可以按需实现。
 
-- **tryAcquire：**独占式获取同步状态。
-- **tryRelease：**独占式释放同步状态。
-- **tryAcquireShared：**共享方式尝试获取资源。
-- **tryReleaseShared：**共享方式尝试释放资源。
+- **tryAcquire**：独占式获取同步状态。
+- **tryRelease**：独占式释放同步状态。
+- **tryAcquireShared**：共享方式尝试获取资源。
+- **tryReleaseShared**：共享方式尝试释放资源。
 
 ### 6.3 AQS和管程
 
@@ -399,10 +400,8 @@ HashMap用拉链法解决hash冲突，线程不安全主要来自对链表的修
 
 
 
-
-
 [☆啃碎并发（七）：深入分析Synchronized原理](https://www.jianshu.com/p/e62fa839aa41)
 
 [ABA问题例子](https://blog.csdn.net/WSYW126/article/details/53979918)
 
- 
+[线程池](https://tech.meituan.com/2020/04/02/java-pooling-pratice-in-meituan.html)
