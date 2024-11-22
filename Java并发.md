@@ -1,4 +1,4 @@
-## 1 Java线程模型
+## 1 Thread
 
 ### 1.1 Java线程状态转换
 
@@ -29,10 +29,6 @@ Java 线程状态是在操作系统线程状态的基础上进行的抽象和封
 Java线程模型简化了操作系统的线程模型。
 
 Java中的线程和操作系统的线程并非一一对应，JVM可以将多个Java线程的任务分配给一个操作系统线程。
-
-### 1.5 并行 并发
-
-### 1.6 进程 线程 协程
 
 ## 2 Java内存模型（JMM）
 
@@ -284,37 +280,122 @@ AQS的很多概念可以在管程模型中找到对应
 
 ReentrantLock实现可重入：通过AQS的state记录重入次数，当前线程每次获取锁，通过CAS使state+1；释放锁时-1，直到state清零，锁才真正释放。
 
-可重入的意义：避免同一个线程尝试多次获取同一个锁时发生死锁
+可重入的意义：避免同一个线程尝试多次获取同一个锁时发生死锁（如递归、嵌套）
 
 ### 7.2 公平锁
 
+初始化时显式地指定公平锁。相较于非公平锁，线程在获取锁时会先检查，如果当前CLH队列中有线程在等待&&当前线程不是队首元素，则获取锁失败。简而言之是利用了队列FIFO的特性，实现了线程的公平竞争。
 
+实现层面，ReentrantLock内部维护了一个继承AQS的同步器Sync，Sync有两个子类FairSync和NonFairSync，分别对应公平/非公平锁。
 
-### 7.3 和synchronized比较
+### 7.3 Condition
 
-## 8 Condition
+Condition是一个接口，用于在多线程环境下实现更精细的线程等待和唤醒机制。它是配合锁（如ReentrantLock）一起使用的，提供了类似于Object类中的wait、notify和notifyAll方法的功能，但比它们更加灵活和强大。
 
-## 9 ReentrantReadWriteLock
+Condition内部维护了一个单向FIFO等待队列，AQS只有一个同步队列，而Condition把同步队列扩展至多个，从而实现更灵活的同步需求
 
-## 10 LockSupport
+- await：自动释放当前持有的锁，将自己封装成一个节点添加到当前Condition的等待队列中。
+
+  线程会暂停执行，直到被其他线程调用signal唤醒。
+
+- signal：唤醒在Condition队列中的一个线程。
+
+## 8 LockSupport
+
+[LockSupport详解](https://pdai.tech/md/java/thread/java-thread-x-lock-LockSupport.html)
 
 LockSupport提供了基本的线程同步原语，底层是一系列native方法。
 
 主要有park和unpark两个方法。
 
-### 10.1 park
+- park：阻塞当前线程，放弃CPU资源，线程进入waiting状态，不释放锁
+- unpark：唤醒指定线程
 
-### 10.2 unpark
+### 8.1 LockSupport为什么高效
 
-## 11 Collection
+- 轻量：通过调用操作系统的底层原语来实现的，相比synchronized复杂的monitor机制更低级，更轻量。
+- 灵活：可以在任意位置调用，不需要和synchronized搭配使用
+- 精准：相比wait/signal，LockSupport可以精准唤醒任意线程
 
-## 12 ThreadLocal
+## 9 ThreadLocal
+
+ThreadLocal本质是线程私有的一个Map。
+
+主要用于在多线程环境下，避免多个线程共享变量时可能出现的数据竞争和并发安全问题。
+
+### 9.1 内部实现
+
+- **内部数据结构**：ThreadLocal 内部维护了一个以 ThreadLocal 对象为键，以变量副本为值的哈希表。每个线程对象（Thread）内部也有一个类似的哈希表（ThreadLocalMap），用于存储该线程对应的 ThreadLocal 变量副本。
+- **变量的存储与访问**：当一个线程首次访问一个 ThreadLocal 变量时，会在自己的 ThreadLocalMap 中创建一个键值对，键是这个 ThreadLocal 对象，值是该变量的初始副本。后续该线程每次访问这个 ThreadLocal 变量时，就会从自己的 ThreadLocalMap 中通过这个 ThreadLocal 对象作为键来获取对应的变量副本。在这个示例中，`thread1`和`thread2`分别设置和获取`threadLocalVariable`的值，它们不会相互干扰，因为每个线程都有自己独立的变量副本。
+
+### 9.2 可能的内存泄漏
+
+- **内存泄漏产生的原因**：在 ThreadLocal 的实现中，每个 Thread 对象内部的 ThreadLocalMap 中的键值对是**弱引用（Weak Reference）**形式存储 ThreadLocal 对象。当一个 ThreadLocal 对象没有其他强引用时，它可能会被垃圾回收。但是，其对应的变量副本（值）在 ThreadLocalMap 中仍然可能存在，如果没有手动清除这些值，就可能会导致内存泄漏。
+- **解决方法**：为了避免内存泄漏，通常需要在使用完 ThreadLocal 变量后，手动调用`remove`方法来清除对应的变量副本。
+
+## 10 ConcurrentHashMap
+
+线程安全的HashMap
+
+### 10.1 HashMap线程不安全的点
+
+HashMap用拉链法解决hash冲突，线程不安全主要来自对链表的修改。
+
+- 插入（put）：并发插入链表可能会破坏链表结构。jdk1.7之前的头插法还有可能带来循环链表问题，从而导致数据丢失/死循环。
+- 扩容（resize）：扩容过程中涉及到元素迁移，将旧桶中的键值对重新hash到新的桶，如果这个过程是并发的，可能会出现同一个桶重复映射或者没有被迁移的情况。
+- 删除（remove）：并发删除链表可能导致链表断裂，数据丢失。
+
+### 10.2 ConcurrentHashMap怎样解决线程安全问题
+
+- volatile：ConcurrentHashMap桶里的元素Node都用volatile修饰，保证修改可见性。
+
+- 插入（put）
+  - 无hash冲突：CAS插入
+  - 有hash冲突：synchronized锁桶。后续在链表/红黑树上的任何操作都因为已经锁桶而不用担心线程安全问题。
+- 查找（get）：没有写操作，无锁并发
+- 扩容（resize）
+  - sizeCtl：>0时为当前Map的容量，<0时表示当前正处于扩容阶段，绝对值就是正在进行扩容的线程数
+  - transferIndex
+    - CAS操作transferIndex，用于给正在执行扩容的线程动态分配任务区间，如线程A负责区间[100,200]的桶的数据迁移。
+    - 结合sizeCtl指示的线程数，线程越多，分配给单个线程的任务就越少，从而提高数据迁移的并发度
+  - ForwardingNode：当一个桶正在进行迁移时，这个桶对应的节点会被设置为ForwardingNode。告诉其他线程这个桶正在迁移过程中。对于读取操作的线程，当遇到ForwardingNode时，就知道需要到新数组中去查找元素，因为旧桶中的元素正在被移动到新位置。
+  - synchronized：迁移过程中，对正在迁移的桶加锁。
+- 计数（size）
+  - CounterCell数组：和每个桶一一对应，记录每个桶里的元素总数，CAS操作加减，将put/remove时发生的数量变化分散到每个桶。获取容量时需要累加整个数组。
+  - 扩容期间：不一定准确，只提供弱一致性的结果
+
+## 11 CopyOnWriteList
+
+一个线程安全的List。
+
+核心思想是在对集合进行修改操作（如添加、删除、修改元素）时，会复制一份原有的数组，在新的数组上进行修改操作，然后将原数组引用指向新数组，从而实现对集合的修改。而读取操作（如`get`）则可以在原数组上进行，不需要加锁，因为在修改操作时会生成新的数组副本，所以读取操作不会受到修改操作的影响，这就保证了读取操作的高效性和并发安全性。
+
+简而言之，有写锁无读锁，适用于读多写少的场景。
+
+存在的问题
+
+- 数据一致性：可能读不到最新的数据
+- 内存占用：因为要维护一个副本，相当于内存翻倍了
+
+## 12 BlockingQueue
+
+阻塞队列（Blocking Queue）在普通队列的基础上增加了阻塞特性。当队列已满或者为空时，执行插入（如`put`操作）或者获取（如`take`操作）操作的线程会被阻塞，直到队列状态允许操作继续进行。
+
+应用场景：生产者消费者模型
+
+### 12.1 ArrayBlockingQueue
+
+- **数据结构**：基于数组实现的有界阻塞队列。它在创建时需要指定队列的容量，并且这个容量在队列的生命周期内是固定不变的。
+- **同步机制**：内部通过重入锁（ReentrantLock）和两个条件对象（Condition）来实现线程之间的同步。一个条件对象用于控制队列满时生产者线程的等待，另一个条件对象用于控制队列空时消费者线程的等待。
+
+### 12.2 LinkedBlockingQueue
+
+- **数据结构**：基于链表实现的阻塞队列，可以是有界的也可以是无界的（默认是无界的，若指定容量则为有界）。因为基于链表，它在插入和删除元素时相对更加灵活，不需要像 ArrayBlockingQueue 那样预先分配固定大小的数组空间。
+- **同步机制**：内部也使用了锁和条件对象来实现同步。不过，它通常有更高的并发性能，因为它在插入和获取元素时使用了两个不同的锁（putLock 和 takeLock），可以允许同时进行插入和获取操作（在一定条件下），提高了吞吐量。
 
 ## 13 ThreadPool
 
-## 14 unsafe
-
-## 15 ForkJoinPool
+线程池
 
 
 
